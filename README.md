@@ -125,6 +125,10 @@ if err != nil {
 // unmarshalJSONStruct.Val == None[int]()
 ```
 
+### YAML marshal/unmarshal support
+
+Similarly to JSON, YAML is supported using the gopkg.in/yaml.v3 package.
+
 ### SQL Driver Support
 
 `Option[T]` satisfies [sql/driver.Valuer](https://pkg.go.dev/database/sql/driver#Valuer) and [sql.Scanner](https://pkg.go.dev/database/sql#Scanner), so this type can be used by SQL interface on Golang.
