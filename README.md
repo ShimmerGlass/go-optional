@@ -1,95 +1,73 @@
-# go-optional [![.github/workflows/check.yml](https://github.com/moznion/go-optional/actions/workflows/check.yml/badge.svg)](https://github.com/moznion/go-optional/actions/workflows/check.yml) [![codecov](https://codecov.io/gh/moznion/go-optional/branch/main/graph/badge.svg?token=0HCVy6COy4)](https://codecov.io/gh/moznion/go-optional) [![GoDoc](https://godoc.org/github.com/moznion/go-optional?status.svg)](https://godoc.org/github.com/moznion/go-optional)
+# go-optional [![.github/workflows/check.yml](https://github.com/shimmerglass/go-optional/actions/workflows/check.yml/badge.svg)](https://github.com/shimmerglass/go-optional/actions/workflows/check.yml) [![GoDoc](https://godoc.org/github.com/shimmerglass/go-optional?status.svg)](https://godoc.org/github.com/shimmerglass/go-optional)
 
 A library that provides [Go Generics](https://go.dev/blog/generics-proposal) friendly "optional" features.
+
+## Fork of [moznion/go-optional](https://github.com/moznion/go-optional)
+
+This package is a fork of [moznion/go-optional](https://github.com/moznion/go-optional) with some changes.
+
+### Option are now structs, not slices
+
+Original implementation uses a `[]T` to represent `Option`s. This induces a 2x `int` + 1x `uintptr` (usually 24 bytes) memory overhead, plus a pointer dereference. This new implementation uses a struct with a boolean to store whether the `Option` is set or not.
+
+As a result:
+
+- Memory overhead reduced from 24 bytes to 1 byte
+- No heap allocations
+- `Option`s are comparable if the type they wrap is comparable and can be used as `map[]` keys
+
+However:
+
+- `nil` is no longer a valid `Option` value. `opt.None()` must be used instead. An `Option` default value is still `None()`
+- The JSON tag `omitempty` no longer works on `Option`s
+
+### Map*, FlatMap*, Zip*, Unzip* functions removed
+
+For simplicity, and because they made less sense now that `Option`s are no longer slices.
 
 ## Synopsis
 
 ```go
-some := optional.Some[int](123)
+some := opt.Some[int](123)
 fmt.Printf("%v\n", some.IsSome()) // => true
 fmt.Printf("%v\n", some.IsNone()) // => false
 
 v, err := some.Take()
 fmt.Printf("err is nil: %v\n", err == nil) // => err is nil: true
 fmt.Printf("%d\n", v) // => 123
-
-mapped := optional.Map(some, func (v int) int {
-    return v * 2
-})
-fmt.Printf("%v\n", mapped.IsSome()) // => true
-
-mappedValue, _ := some.Take()
-fmt.Printf("%d\n", mappedValue) // => 246
-```
-
-```go
-none := optional.None[int]()
-fmt.Printf("%v\n", none.IsSome()) // => false
-fmt.Printf("%v\n", none.IsNone()) // => true
-
-_, err := none.Take()
-fmt.Printf("err is nil: %v\n", err == nil) // => err is nil: false
-// the error must be `ErrNoneValueTaken`
-
-mapped := optional.Map(none, func (v int) int {
-    return v * 2
-})
-fmt.Printf("%v\n", mapped.IsNone()) // => true
 ```
 
 and more detailed examples are here: [./examples_test.go](./examples_test.go).
 
 ## Docs
 
-[![GoDoc](https://godoc.org/github.com/moznion/go-optional?status.svg)](https://godoc.org/github.com/moznion/go-optional)
+[![GoDoc](https://godoc.org/github.com/shimmerglass/go-optional?status.svg)](https://godoc.org/github.com/shimmerglass/go-optional)
 
 ### Supported Operations
 
 #### Value Factory Methods
 
-- [Some[T]\() Option[T]](https://pkg.go.dev/github.com/moznion/go-optional#Some)
-- [None[T]\() Option[T]](https://pkg.go.dev/github.com/moznion/go-optional#None)
-- [FromNillable[T]\() Option[T]](https://pkg.go.dev/github.com/moznion/go-optional#FromNillable)
-- [PtrFromNillable[T]\() Option[T]](https://pkg.go.dev/github.com/moznion/go-optional#PtrFromNillable)
+- [Some[T]\() Option[T]](https://pkg.go.dev/github.com/shimmerglass/go-optional#Some)
+- [None[T]\() Option[T]](https://pkg.go.dev/github.com/shimmerglass/go-optional#None)
+- [FromNillable[T]\() Option[T]](https://pkg.go.dev/github.com/shimmerglass/go-optional#FromNillable)
+- [PtrFromNillable[T]\() Option[T]](https://pkg.go.dev/github.com/shimmerglass/go-optional#PtrFromNillable)
 
 #### Option value handler methods
 
-- [Option[T]#IsNone() bool](https://pkg.go.dev/github.com/moznion/go-optional#Option.IsNone)
-- [Option[T]#IsSome() bool](https://pkg.go.dev/github.com/moznion/go-optional#Option.IsSome)
-- [Option[T]#Unwrap() T](https://pkg.go.dev/github.com/moznion/go-optional#Option.Unwrap)
-- [Option[T]#UnwrapAsPtr() \*T](https://pkg.go.dev/github.com/moznion/go-optional#Option.UnwrapAsPtr)
-- [Option[T]#Take() (T, error)](https://pkg.go.dev/github.com/moznion/go-optional#Option.Take)
-- [Option[T]#TakeOr(fallbackValue T) T](https://pkg.go.dev/github.com/moznion/go-optional#Option.TakeOr)
-- [Option[T]#TakeOrElse(fallbackFunc func() T) T](https://pkg.go.dev/github.com/moznion/go-optional#Option.TakeOrElse)
-- [Option[T]#Or(fallbackOptionValue Option[T]) Option[T]](https://pkg.go.dev/github.com/moznion/go-optional#Option.Or)
-- [Option[T]#OrElse(fallbackOptionFunc func() Option[T]) Option[T]](https://pkg.go.dev/github.com/moznion/go-optional#Option.OrElse)
-- [Option[T]#Filter(predicate func(v T) bool) Option[T]](https://pkg.go.dev/github.com/moznion/go-optional#Option.Filter)
-- [Option[T]#IfSome(f func(v T))](https://pkg.go.dev/github.com/moznion/go-optional#Option.IfSome)
-- [Option[T]#IfSomeWithError(f func(v T) error) error](https://pkg.go.dev/github.com/moznion/go-optional#Option.IfSomeWithError)
-- [Option[T]#IfNone(f func())](https://pkg.go.dev/github.com/moznion/go-optional#Option.IfNone)
-- [Option[T]#IfNoneWithError(f func() error) error](https://pkg.go.dev/github.com/moznion/go-optional#Option.IfNoneWithError)
-- [Option.Map[T, U any](option Option[T], mapper func(v T) U) Option[U]](https://pkg.go.dev/github.com/moznion/go-optional#Map)
-- [Option.MapOr[T, U any](option Option[T], fallbackValue U, mapper func(v T) U) U](https://pkg.go.dev/github.com/moznion/go-optional#MapOr)
-- [Option.MapWithError[T, U any](option Option[T], mapper func(v T) (U, error)) (Option[U], error)](https://pkg.go.dev/github.com/moznion/go-optional#MapWithError)
-- [Option.MapOrWithError[T, U any](option Option[T], fallbackValue U, mapper func(v T) (U, error)) (U, error)](https://pkg.go.dev/github.com/moznion/go-optional#MapOrWithError)
-- [Option.FlatMap[T, U any](option Option[T], mapper func(v T) Option[U]) Option[U]](https://pkg.go.dev/github.com/moznion/go-optional#FlatMap)
-- [Option.FlatMapOr[T, U any](option Option[T], fallbackValue U, mapper func(v T) Option[U]) U](https://pkg.go.dev/github.com/moznion/go-optional#FlatMapOr)
-- [Option.FlatMapWithError[T, U any](option Option[T], mapper func(v T) (Option[U], error)) (Option[U], error)](https://pkg.go.dev/github.com/moznion/go-optional#FlatMapWithError)
-- [Option.FlatMapOrWithError[T, U any](option Option[T], fallbackValue U, mapper func(v T) (Option[U], error)) (U, error)](https://pkg.go.dev/github.com/moznion/go-optional#FlatMapOrWithError)
-- [Option.Zip[T, U any](opt1 Option[T], opt2 Option[U]) Option[Pair[T, U]]](https://pkg.go.dev/github.com/moznion/go-optional#Zip)
-- [Option.ZipWith[T, U, V any](opt1 Option[T], opt2 Option[U], zipper func(opt1 T, opt2 U) V) Option[V]](https://pkg.go.dev/github.com/moznion/go-optional#ZipWith)
-- [Option.Unzip[T, U any](zipped Option[Pair[T, U]]) (Option[T], Option[U])](https://pkg.go.dev/github.com/moznion/go-optional#Unzip)
-- [Option.UnzipWith[T, U, V any](zipped Option[V], unzipper func(zipped V) (T, U)) (Option[T], Option[U])](https://pkg.go.dev/github.com/moznion/go-optional#UnzipWith)
-
-### nil == None[T]
-
-This library deals with `nil` as same as `None[T]`. So it works with like the following example:
-
-```go
-var nilValue Option[int] = nil
-fmt.Printf("%v\n", nilValue.IsNone()) // => true
-fmt.Printf("%v\n", nilValue.IsSome()) // => false
-```
+- [Option[T]#IsNone() bool](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.IsNone)
+- [Option[T]#IsSome() bool](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.IsSome)
+- [Option[T]#Unwrap() T](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.Unwrap)
+- [Option[T]#UnwrapAsPtr() \*T](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.UnwrapAsPtr)
+- [Option[T]#Take() (T, error)](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.Take)
+- [Option[T]#TakeOr(fallbackValue T) T](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.TakeOr)
+- [Option[T]#TakeOrElse(fallbackFunc func() T) T](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.TakeOrElse)
+- [Option[T]#Or(fallbackOptionValue Option[T]) Option[T]](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.Or)
+- [Option[T]#OrElse(fallbackOptionFunc func() Option[T]) Option[T]](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.OrElse)
+- [Option[T]#Filter(predicate func(v T) bool) Option[T]](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.Filter)
+- [Option[T]#IfSome(f func(v T))](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.IfSome)
+- [Option[T]#IfSomeWithError(f func(v T) error) error](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.IfSomeWithError)
+- [Option[T]#IfNone(f func())](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.IfNone)
+- [Option[T]#IfNoneWithError(f func() error) error](https://pkg.go.dev/github.com/shimmerglass/go-optional#Option.IfNoneWithError)
 
 ### JSON marshal/unmarshal support
 
@@ -101,10 +79,10 @@ example:
 
 ```go
 type JSONStruct struct {
-	Val Option[int] `json:"val"`
+	Val opt.Option[int] `json:"val"`
 }
 
-some := Some[int](123)
+some := opt.Some[int](123)
 jsonStruct := &JSONStruct{Val: some}
 
 marshal, err := json.Marshal(jsonStruct)
@@ -127,10 +105,10 @@ example:
 
 ```go
 type JSONStruct struct {
-	Val Option[int] `json:"val"`
+	Val opt.Option[int] `json:"val"`
 }
 
-none := None[int]()
+none := opt.None[int]()
 jsonStruct := &JSONStruct{Val: none}
 
 marshal, err := json.Marshal(jsonStruct)
@@ -145,28 +123,6 @@ if err != nil {
 	return err
 }
 // unmarshalJSONStruct.Val == None[int]()
-```
-
-And this also supports `omitempty` option for JSON unmarshaling. If the value of the property is `None[T]` and that property has `omitempty` option, it omits that property.
-
-ref:
-
-> The "omitempty" option specifies that the field should be omitted from the encoding if the field has an empty value, defined as false, 0, a nil pointer, a nil interface value, and any empty array, slice, map, or string.
-> https://pkg.go.dev/encoding/json#Marshal
-
-example:
-
-```go
-type JSONStruct struct {
-	OmitemptyVal Option[string] `json:"omitemptyVal,omitempty"` // this should be omitted
-}
-
-jsonStruct := &JSONStruct{OmitemptyVal: None[string]()}
-marshal, err := json.Marshal(jsonStruct)
-if err != nil {
-	return err
-}
-fmt.Printf("%s\n", marshal) // => {}
 ```
 
 ### SQL Driver Support
@@ -192,7 +148,7 @@ func() {
 }()
 tx.Commit()
 
-var maybeName Option[string]
+var maybeName opt.Option[string]
 
 row := db.QueryRow("SELECT name FROM tbl WHERE id = 1")
 row.Scan(&maybeName)
@@ -202,12 +158,3 @@ row := db.QueryRow("SELECT name FROM tbl WHERE id = 2")
 row.Scan(&maybeName)
 fmt.Println(maybeName) // None[]
 ```
-
-## Known Issues
-
-The runtime raises a compile error like "methods cannot have type parameters", so `Map()`, `MapOr()`, `MapWithError()`, `MapOrWithError()`, `Zip()`, `ZipWith()`, `Unzip()` and `UnzipWith()` have been providing as functions. Basically, it would be better to provide them as the methods, but currently, it compromises with the limitation.
-
-## Author
-
-moznion (<moznion@mail.moznion.net>)
-
